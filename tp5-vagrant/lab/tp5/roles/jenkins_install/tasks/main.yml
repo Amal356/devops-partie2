@@ -1,0 +1,14 @@
+---
+- name: Creer le volume de Jenkins
+  community.docker.docker_volume:
+    name: jenkins_home
+
+- name: Lancer Jenkins LTS
+  community.docker.docker_container:
+    name: jenkins
+    image: jenkins/jenkins:lts-jdk21
+    restart_policy: unless-stopped
+    published_ports:
+      - "8080:8080"
+    volumes:
+      - jenkins_home:/var/jenkins_home

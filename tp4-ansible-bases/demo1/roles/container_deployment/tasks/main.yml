@@ -1,0 +1,17 @@
+---
+- name: Creer le dossier de l'application
+  ansible.builtin.file:
+    path: /opt/webapp
+    state: directory
+    mode: "0755"
+
+- name: Copier Dockerfile, docker-compose.yml et le site
+  ansible.builtin.copy:
+    src: site/
+    dest: /opt/webapp/
+    mode: "0644"
+
+- name: Construire l'image et lancer le conteneur web
+  community.docker.docker_compose_v2:
+    project_src: /opt/webapp
+    state: present

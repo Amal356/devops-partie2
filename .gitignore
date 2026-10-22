@@ -1,0 +1,8 @@
+# Terraform : etat et providers locaux (jamais dans Git)
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+crash.log
+# Vagrant
+.vagrant/

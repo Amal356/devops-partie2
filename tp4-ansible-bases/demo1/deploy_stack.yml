@@ -1,0 +1,75 @@
+---
+# Partie 4 : un seul playbook (Docker, Portainer, Jenkins, conteneur web)
+- name: Installer Docker, Portainer, Jenkins et deployer le site web
+  hosts: nodes
+  become: true
+
+  tasks:
+    - name: Installer Docker Engine, Compose v2 et le SDK Python
+      ansible.builtin.apt:
+        name:
+          - docker.io
+          - docker-compose-v2
+          - python3-docker
+        state: present
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: Demarrer et activer Docker
+      ansible.builtin.service:
+        name: docker
+        state: started
+        enabled: true
+
+    - name: Ajouter devops au groupe docker
+      ansible.builtin.user:
+        name: devops
+        groups: docker
+        append: true
+
+    - name: Creer le volume de Portainer
+      community.docker.docker_volume:
+        name: portainer_data
+
+    - name: Lancer Portainer CE
+      community.docker.docker_container:
+        name: portainer
+        image: portainer/portainer-ce:lts
+        restart_policy: unless-stopped
+        published_ports:
+          - "9443:9443"
+        volumes:
+          - /var/run/docker.sock:/var/run/docker.sock
+          - portainer_data:/data
+
+    - name: Creer le volume de Jenkins
+      community.docker.docker_volume:
+        name: jenkins_home
+
+    - name: Lancer Jenkins LTS
+      community.docker.docker_container:
+        name: jenkins
+        image: jenkins/jenkins:lts-jdk21
+        restart_policy: unless-stopped
+        published_ports:
+          - "8080:8080"
+        volumes:
+          - jenkins_home:/var/jenkins_home
+
+    - name: Creer le dossier de l'application
+      ansible.builtin.file:
+        path: /opt/webapp
+        state: directory
+        mode: "0755"
+
+    - name: Copier Dockerfile, docker-compose.yml et le site
+      ansible.builtin.copy:
+        src: site/
+        dest: /opt/webapp/
+        mode: "0644"
+
+    - name: Construire l'image et lancer le conteneur web
+      community.docker.docker_compose_v2:
+        project_src: /opt/webapp
+        state: present
+

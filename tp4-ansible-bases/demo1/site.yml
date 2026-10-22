@@ -1,0 +1,10 @@
+---
+# Partie 5 : meme deploiement que deploy_stack.yml, organise en roles
+- name: Deployer Docker, Portainer, Jenkins et le site web
+  hosts: nodes
+  become: true
+
+  roles:
+    - docker_portainer_install
+    - jenkins_install
+    - container_deployment

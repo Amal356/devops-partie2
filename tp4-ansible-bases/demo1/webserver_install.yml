@@ -1,0 +1,30 @@
+---
+- name: Installer et configurer Apache sur les noeuds
+  hosts: nodes
+  become: true
+
+  tasks:
+    - name: Creer un dossier de test
+      ansible.builtin.file:
+        path: /opt/tp4-test
+        state: directory
+        mode: "0755"
+
+    - name: Installer Apache
+      ansible.builtin.apt:
+        name: apache2
+        state: present
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: Copier la page d'accueil
+      ansible.builtin.copy:
+        src: files/index.html
+        dest: /var/www/html/index.html
+        mode: "0644"
+
+    - name: Demarrer et activer Apache
+      ansible.builtin.service:
+        name: apache2
+        state: started
+        enabled: true

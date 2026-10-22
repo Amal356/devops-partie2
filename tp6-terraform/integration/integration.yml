@@ -1,0 +1,48 @@
+---
+# TP6 - Integration : Ansible installe Docker et Terraform sur les 2 VM,
+# puis lance Terraform sur chacune (CV sur vm1:8001 et vm2:8002).
+- name: Docker + Terraform + CV sur les 2 VM
+  hosts: nodes
+  become: true
+
+  tasks:
+    - name: Installer Docker et les outils
+      ansible.builtin.apt:
+        name: [docker.io, gnupg, lsb-release]
+        state: present
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: Ajouter la cle GPG HashiCorp
+      ansible.builtin.shell: |
+        set -o pipefail
+        wget -qO- https://apt.releases.hashicorp.com/gpg | gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
+      args:
+        creates: /usr/share/keyrings/hashicorp-archive-keyring.gpg
+        executable: /bin/bash
+
+    - name: Ajouter le depot apt HashiCorp
+      ansible.builtin.apt_repository:
+        repo: "deb [arch=amd64 signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com {{ ansible_distribution_release }} main"
+        filename: hashicorp
+        state: present
+
+    - name: Installer Terraform
+      ansible.builtin.apt:
+        name: terraform
+        state: present
+
+    - name: Copier la configuration Terraform du CV
+      ansible.builtin.copy:
+        src: terraform/
+        dest: /opt/cv-terraform/
+        mode: "0644"
+
+    - name: Lancer le conteneur CV avec Terraform
+      community.general.terraform:
+        project_path: /opt/cv-terraform
+        state: present
+        force_init: true
+        variables:
+          external_port: "{{ cv_port }}"
+          cv_host: "{{ inventory_hostname }}"

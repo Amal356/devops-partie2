@@ -1,0 +1,10 @@
+---
+# TP5 : roles du TP4 (partie 5) appliques par Vagrant (provisioner ansible_local)
+- name: Lab TP5 - Docker, Portainer, Jenkins et site web sur les 2 VM
+  hosts: nodes
+  become: true
+
+  roles:
+    - docker_portainer_install
+    - jenkins_install
+    - container_deployment

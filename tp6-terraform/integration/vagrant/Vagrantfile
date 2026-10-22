@@ -1,0 +1,40 @@
+# Lab Partie 2 (TP4, TP5, TP6) – Amal Jemli
+# webserver : noeud gere 1 (TP4 Apache, TP5 Jenkins/Docker/Portainer/site, TP6 CV :8001)
+# ftpserver : noeud gere 2 (idem, TP6 CV :8002)
+# control   : noeud de controle Ansible / Terraform (defini en dernier : il provisionne les deux autres)
+Vagrant.configure("2") do |config|
+  config.vm.box = "bento/ubuntu-24.04"
+  config.vm.box_check_update = false
+
+  nodes = {
+    "webserver" => { ip: "192.168.56.81", mem: 2560, cpus: 2 },
+    "ftpserver" => { ip: "192.168.56.82", mem: 2560, cpus: 2 },
+    "control"   => { ip: "192.168.56.80", mem: 1024, cpus: 1 },
+  }
+
+  nodes.each do |name, opts|
+    config.vm.define name do |node|
+      node.vm.hostname = name
+      node.vm.network "private_network", ip: opts[:ip]
+      node.vm.provider "virtualbox" do |vb|
+        vb.name   = "p2-#{name}"
+        vb.memory = opts[:mem]
+        vb.cpus   = opts[:cpus]
+      end
+      node.vm.provision "bootstrap", type: "shell", path: "bootstrap.sh", args: [name]
+
+      # TP5 : provisionnement Ansible des 2 noeuds depuis "control" avec les roles du TP4.
+      # Sur un hote Windows, le provisioner "ansible" n'existe pas : on utilise "ansible_local",
+      # qui execute ansible-playbook dans la VM control (Ansible y est deja installe).
+      if name == "control"
+        node.vm.provision "lab", type: "ansible_local" do |ansible|
+          ansible.install           = false
+          ansible.provisioning_path = "/vagrant/tp5"
+          ansible.playbook          = "site.yml"
+          ansible.inventory_path    = "inventory.ini"
+          ansible.limit             = "all"
+        end
+      end
+    end
+  end
+end
